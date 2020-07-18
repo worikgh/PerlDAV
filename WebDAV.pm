@@ -14,6 +14,7 @@ use utf8;
 use ResourceStore;
 use WDGlobals qw|
     $ROOT 
+    $PWD
     %LIVE_PROPERTIES
     $LOGLEVEL
     $DATADIR
@@ -46,7 +47,7 @@ my $CDAV_pfx = 'C';
 # that add and remove users need it, so here it is.  Much match the
 # file in the web server configoration file
 # FIXME This needs to be in a configuration file
-my $PASSWORD_FN = '/home/dav/PerlDAV/DavPasswd';
+my $PASSWORD_FN = $PWD.$DAVPASSWD;
 
 
 # The authorisation file

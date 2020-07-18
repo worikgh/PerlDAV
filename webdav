@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 use warnings;
+use WDGlobals qw|PWD|;
 
 # FIXME: This hard coded thing makes this unportable
-chdir '/home/dav/PerlDAV' or die $!;
+chdir $PWD or die "$! 'chdir $PWD' failed ";
 
-use lib('/home/dav/PerlDAV');
+use lib($PWD);
 
 use WebDAV;
 WebDAV::initialiseServer();

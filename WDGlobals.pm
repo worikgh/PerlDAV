@@ -5,9 +5,11 @@ require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw |
     $ROOT
+    $PWD
     $LOGLEVEL
     $RESOURCE_PATH_FN
     $DATADIR
+    $DAVPASSWD
     $DEAD_PROPERTIESDBFN
     $LIVE_PROPERTIES
     $LIVE_PROPERTIESDBFN
@@ -21,14 +23,18 @@ our @EXPORT_OK = qw |
 |;
 use Fcntl qw(:flock SEEK_END); # For logfile
 
+# 
 our $ROOT = "ROOT";
+# The path to the WebDAV.pm and other Perl files
+our $PWD = "/home/dav/PerlDAV/";
 # 1 => commands. 2 => some debug messages 3 => log all methods, 0 => just log excepions
 our $LOGLEVEL = 3;
 # The translation table for resources to file paths
 our $RESOURCE_PATH_FN = "._tr";
 # Where data is stored (Duh!)
 our $DATADIR = 'DATA';
-
+# The name of the password file
+our $DAVPASSWD = 'DavPAsswd';
 
 # The live properties.  Each key is the property name.  Each value is
 # an ARRAY ref.  

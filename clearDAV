@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 use File::Path;
-
+use WDGlobals qw|PWD|;
 ## Define the directory we use.  FIXME This should be a configuration file
-my $DIR = "/home/dav/PerlDAV/";
+my $DIR = $PWD;
 -d $DIR or die "$!: '$DIR' not a directory";
 
 my @fileNames = qw|._DAV_LOCKS ._tr ._PropertiesDead ._PropertiesLive ._Users|;

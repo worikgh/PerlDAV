@@ -1,8 +1,6 @@
 #!/bin/bash
 set -x
 
-
-
 # Set the location, in the container, of the WebDAV installation
 PD_HOME=/home/dav/PerlDAV
 
@@ -48,11 +46,7 @@ lxc exec webdav -- usermod -a -G www-data dav
 lxc file push PerlDAV.tgz webdav/home/dav/
 lxc exec webdav -- su - dav -c "mkdir $PD_HOME/"
 lxc exec webdav -- su - dav -c "cd $PD_HOME ; tar xfzv /home/dav/PerlDAV.tgz "
-lxc exec webdav -- su - dav -c "cd $PD_HOME ; touch DavPasswd webdav.log ._DAV_LOCKS ._PropertiesDead ._PropertiesLive ._Users ._authorise ._tr ._translate_resource"
-lxc exec webdav -- su - dav -c "cd $PD_HOME ; mkdir DATA"
-lxc exec webdav -- su - dav -c "cd $PD_HOME ; chgrp www-data DavPasswd webdav.log ._DAV_LOCKS ._PropertiesDead ._PropertiesLive ._Users ._authorise ._tr ._translate_resource DATA"
-# lxc exec webdav -- su - dav -c "sed -i -e 's/\/dav\/PerlDAV/\/ubuntu\/dav/' $PD_HOME/webdav"
-# lxc exec webdav -- su - dav -c "sed -i -e 's/\/dav\/PerlDAV/\/ubuntu\/dav/' $PD_HOME/WebDAV.pm"
+lxc exec webdav -- su - dav -c "cd $PD_HOME ; ./initialiseDAV"
 
 # Pause unitl the network is ready.  Prepare and execute a script that
 # will wait for netwok interfaces to come up
@@ -100,7 +94,7 @@ fastcgi.server = (
  )
 
 auth.backend = "htdigest"
-auth.backend.htdigest.userfile ="/home/dav/PerlDAV/DavPasswd"
+auth.backend.htdigest.userfile ="/home/dav/PerlDAV/$DAVPASSWD"
 auth.require = ( "/" =>
     (
         "method"  => "digest",
