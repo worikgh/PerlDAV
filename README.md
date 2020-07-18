@@ -14,18 +14,9 @@ Control Protocol") is also implemented
 
 # Features
 
-    . Pure Perl.  No need for `mysql` or other database software
+    . Pure Perl.  No external database manegment software needed
     . Simple.  Implemented as a translation of the applicable RFCs
     
-# Limitations
-
-This will not scale.  It works well for a small installation with not
-many users or much traffic.  The system works by storing data about
-resources in flat text files.  These text files are unstructured and
-must be searched from beginning to end each time they are used.  This
-is a simple approach, and it is light on resources, other than time.
-It is a slow approach that will not scale.
-
 # Installation
 
 These are instructions for installing this with lighttpd an a `Ubuntu`
@@ -65,9 +56,7 @@ At the end of lighttpd configuration file add the following two lines:
 * auth.backend = "htdigest"
 * auth.backend.htdigest.userfile = "<Path to password file (See `$PASSWORD_FN` below)>"
 
-Next turn on authentication for `/dav/`, the path to the server. (I
-would like it if declaring variables was allowed in a lighttpd
-configuration file...)
+Next turn on authentication for `/dav/`, the path to the server. 
 
 auth.require = ( "/dav/" =><br/>
 &nbsp;&nbsp;(<br/>
@@ -94,14 +83,12 @@ This will mean paths with the prefix `/WebDAV` will use our `FastCGI` programme.
 
 ## Configure `PerlDAV`
 
-Check out the archive using git and clone (As I write I have yet to
-have a anonymous git access).  Make sure that it is *not* unpacked
-into the web server's `DocumentRoot`.  That would expose configuration
-and data files that are best kept in the same directory, or a tree
-rooted in the same directory, as `PerlDAV` itself.
+Check out the archive using git and clone Make sure that it is *not*
+unpacked into the web server's `DocumentRoot`.  That would expose
+configuration and data files that are best kept in the same directory,
+or a tree rooted in the same directory, as `PerlDAV` itself.
 
 ### Required Files
-
 
 The required file names are all hard coded into `WebDAV.pm`.  The
 tiles are:
@@ -118,7 +105,7 @@ tiles are:
 
 The five  files (other  than `$PASSWORD_FN`) must  be created  as empty
 files,  and the  data directory  created  as a  empty directory.   The
-little Perl  script `initialiseDAV` will prepare  a blank installation
+programme `initialiseDAV` will prepare  a blank installation
 with the above default values.
 
 The password file can be managed with `htdigest` from the `Apache `
@@ -129,11 +116,10 @@ into the `$PASSWORD_FN`.
 
 `add_webDAV_user` creates an account for a user.
 
-Takes as arguments a user name, password, root collection and quota
-(storage area size) for a new user.  If any of these do not exist it
-prompts on stdin/stdout for them
+Takes as arguments a user name, password, and root collection name for
+a new user.  (Users can share a root collection). If any of these do
+not exist it prompts on stdin/stdout for them
 
 It checks that the user does not exist and that the root
-collection does not exist as a resource.  (It is OK for two users
-to share a route collection)
+collection does not exist as a resource.  
 
