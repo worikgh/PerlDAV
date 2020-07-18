@@ -1,0 +1,18 @@
+#!/usr/bin/perl -w
+use strict;
+use warnings;
+<<<<<<< HEAD
+
+# FIXME: This hard coded thing makes this unportable
+chdir '/home/dav/PerlDAV' or die $!;
+
+=======
+# FIXME: This hard coded thing makes this unportable
+chdir '/home/dav/PerlDAV' or die $!;
+>>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
+use lib('/home/dav/PerlDAV');
+
+use WebDAV;
+WebDAV::initialiseServer();
+warn "Here";
+WebDAV::runServer();

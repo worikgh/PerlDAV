@@ -1,0 +1,45 @@
+#!/usr/bin/perl -w
+use File::Path;
+
+## Define the directory we use.  FIXME This should be a configuration file
+my $DIR = "/home/dav/PerlDAV/";
+-d $DIR or die "$!: '$DIR' not a directory";
+
+my @fileNames = qw|._DAV_LOCKS ._tr ._PropertiesDead ._PropertiesLive ._Users|;
+<<<<<<< HEAD
+chdir $DIR or die $!;
+=======
+chdir "/home/dav/PerlDAV/" or die $!;
+>>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
+
+foreach my $fn (@fileNames){
+    if(-e $fn){
+	open(my $_d, ">$fn") or die "$!: Cannot open '$fn'";
+	close($_d) or die "$!: Cannot close '$fn'";
+    }
+}
+
+if(-d "DATA"){
+    # Cannot delete as owned by www-data
+    my $name = "_OLD_DATA".time();
+    rename("DATA", $name) or die "$!: Cannot reame DATA '$name'";
+    mkdir "DATA" or die "$!: Cannot mkdir DATA";
+    `chown  .www-data DATA`;
+}
+
+# Put the users back
+<<<<<<< HEAD
+# if there are any
+if (open(my $users_f, "/home/worik/WebDAVusers.txt") ){
+=======
+open(my $users_f, "/home/dav/PerlDAV/WebDAVusers.txt") or die "$!";
+>>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
+my @users = map{chomp; $_} <$users_f>;
+close($users_f) or die $!;
+
+foreach my $user (@users){
+    my ($name, $password, $root) = split("\t", $user);
+    map{defined or die "variable undefined"} ($name, $password, $root);
+    `./add_webDAV_user $name $password $root`;
+}
+}

@@ -1,0 +1,20 @@
+#!/usr/bin/expect  
+#$ ./add_webdav_user.expect passwdpath realm username userpass
+#$
+######################################
+
+set htpasswdpath [lindex $argv 0]
+set realm [lindex $argv 1]
+set username [lindex $argv 2]
+set userpass [lindex $argv 3]
+
+# spawn the htpasswd command process
+spawn htdigest $htpasswdpath $realm $username
+
+# Automate the 'New password' Procedure
+expect "Adding user $username in realm WebDAV"
+expect "New password:"
+send "$userpass\r"
+
+expect "Re-type new password:"
+send "$userpass\r"

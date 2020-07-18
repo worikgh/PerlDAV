@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>README.html</title>
+
+</head>
+
+<body>
+
+<h1>WebDAV server written in Perl</h1>
+
+<p>There are many <code>WebDAV</code> implementations.  This is another one.</p>
+
+<p><code>WebDAV</code> is a Internet protocol for netork storage of files.  It is
+defined primarily in <a href="https://tools.ietf.org/html/rfc4918
+" title="WebDAV RFC"><code>RFC4918</code>.</a>. This obsoleted <code>RFC2518</code>.</p>
+
+<p>It has protocols for storing resources and collections of resources.
+Analogous to files and directories.</p>
+
+<p>RFC <a href="https://tools.ietf.org/html/rfc3744" title="WebDAV Access
+Control Protocol"><code>RFC3744</code>.</a> is also implemented </p>
+
+<h1>Features</h1>
+
+<pre><code>. Pure Perl.  No need for `mysql` or other dtabase software
+. Simple.  Implemented as a translation of the applicable RFCs
+</code></pre>
+
+<h1>Limitations</h1>
+
+<p>This will not scale.  It works well for a small installation with not
+many users or much traffc.  The system works by storing data about
+resources in flat text files.  These text files are unstructured and
+must be searched from beginning to end each time they are used.  This
+is a simple approach, and it is light on resources, other than time.
+It is a slow approach that will not scale.</p>
+
+<h1>Installation</h1>
+
+<p>These are instructions for installing this with lighttpd an a <code>Ubuntu</code>
+server.  This software is implemented as <code>FastCGI</code>.</p>
+
+<p><code>lighttpd</code> is a lightweight and fast http server. It is perfect for a
+application such as this where the software is delivered with <code>CGI</code>.</p>
+
+<h2>Requirements</h2>
+
+<ul>
+<li>Perl 
+++ XML::LibXML.pm (<code>libxml-libxml-perl</code>)
+++ Data::Validate::URI (<code>libdata-validate-uri-perl</code>)
+++ URI::Escape::XS (<code>liburi-escape-xs-perl</code>)
+++ Crypt::PasswdMD5 (<code>libcrypt-passwdmd5-perl</code>)</li>
+<li>lighttpd (<code>lighttpd</code>) <a href="https://redmine.lighttpd.net" title="lighttpd information">Lighttpd's Website</a></li>
+</ul>
+
+<p>Install these packages.  (Perl is installed by default on <code>Ubuntu</code>)</p>
+
+<h2>Configure <code>lighttpd</code></h2>
+
+<p>In the lighttpd configuration file in the <code>server.modules</code> statement
+add <code>"mod_fastcgi"</code>, and <code>mod_auth</code>.  <code>mod_fastcgi</code> is needed to run
+<code>PerlDAV</code> as fast CGI.  <code>mod_auth</code> is requirred to place a
+user/password beteen the wild world and the <code>PerlDAV</code></p>
+
+<p>server.modules = (<br/>
+&nbsp;        "mod<em>access",<br/>
+&nbsp;        "mod</em>alias",<br/>
+&nbsp;        "mod<em>compress",<br/>
+&nbsp;        "mod</em>redirect",<br/>
+&nbsp;        <b>"mod<em>auth",</b><br/>
+&nbsp;        <b>"mod</em>fastcgi",</b><br/>
+)</p>
+
+<p>At the end of lighttpd configuration file add the following two lines:
+* auth.backend = "htdigest"
+* auth.backend.htdigest.userfile = "<PAth to password file (See <code>$PASSWORD_FN</code> below)>"</p>
+
+<p>Next turn on authentication for <code>/WebDAV</code>, the path to the server. (I
+would like it if declaring variables was allowed in a lighttpd
+configuration file...)</p>
+
+<p>auth.require = ( "/WebDAV/" =><br/>
+&nbsp;&nbsp;(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;"method" => "digest",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;"realm" => "WebDAV",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;"require" => "valid-user"<br/>
+&nbsp;&nbsp;)<br/>
+)</p>
+
+<p><a href="https://redmine.lighttpd.net/projects/lighttpd/wiki/Docs_ModFastCGI" title="mod_fastcgi docs">FastCGI Mod Documentation</a></p>
+
+<p>fastcgi.server = (<br/>
+&nbsp;"/WebDAV" =><br/>
+&nbsp;&nbsp;( "WebDAV" =><br/>
+&nbsp;&nbsp;&nbsp; (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; "socket" => "/var/run/lighttpd/webdav.socket",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; "bin-path" => "<Path to PerlDAV/webdav>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; )<br/>
+&nbsp;&nbsp;&nbsp; )<br/>
+&nbsp;&nbsp;)<br/></p>
+
+<p>This will mean paths with the prefix <code>/WebDAV</code> will use our <code>FastCGI</code> programme.</p>
+
+<h2>Configure <code>PerlDAV</code></h2>
+
+<p>Check out the archive using git and clone (As I write I have yet to
+have a anonymous git access).  Make sure that it is <em>not</em> unpacked
+into the web server's <code>DocumentRoot</code>.  That would expose configuration
+and data files that are best kept in the same directory, or a tree
+rooted in the same directory, as <code>PerlDAV</code> itself.</p>
+
+<h3>Required Files</h3>
+
+<p>The required file names are all hard coded into <code>WebDAV.pm</code>.  The
+tiles are:</p>
+
+<ul>
+<li><code>$RESOURCE_PATH_FN</code> File for storing resource definitions (File or collection).  Defaults to <code>._tr</code></li>
+<li><code>$AUTHORISATION_FN</code> File for handling authorisation for WebDAV operations by a user on a resource. Defaults to <code>._authorise</code></li>
+<li><code>$LOCK_FN</code> File for handling WebDAV locks. Defaults to <code>._DAV_LOCKS</code></li>
+<li><code>$LIVE_PROPERTIESDBFN</code> File that stores live properties for resources.  Defaults to <code>._PropertiesLive</code></li>
+<li><code>$DEAD_PROPERTIESDBFN</code> File that stores dead properties for resources.  Defaults to <code>._PropertiesDead</code></li>
+<li><code>$PASSWORD_FN</code> Not used directly by <code>PerlDAV</code>, but controlls access
+to the resources at a webserver level.  Defaults to <code>DavPassword</code></li>
+<li><code>$DATADIR</code> Directory where the resources are stored. Defaults to <code>DATA/</code> </li>
+</ul>
+
+<p>The five  files (other  than <code>$PASSWORD_FN</code>) must  be created  as empty
+files,  and the  data directory  created  as a  empty directory.   The
+little Perl  script <code>initialiseDAV</code> will prepare  a blank installation
+with the above default values.</p>
+
+<p>The password file can be managed with <code>htdigest</code> from the <code>Apache</code>
+distribution.  <code>addwebDAV_user</code> (see next section) also adds entries
+into the <code>$PASSWORD_FN</code>.</p>
+
+<h2>Adding Users</h2>
+
+<p><code>add_webDAV_user</code> creates an account for a user.</p>
+
+<p>Takes as arguments a user name, password, root collection and quota
+(storage area size) for a new user.  If any of these do not exist it
+prompts on stdin/stdout for them</p>
+
+<p>It checks that the user does not exist and that the root
+collection does not exist as a resource.  (It is OK for two users
+to share a route collection)</p>
+
+</body>
+</html>

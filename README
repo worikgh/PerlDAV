@@ -1,0 +1,29 @@
+Files:
+
+      $WebDAV::USERS_FN	Describes user accounts
+      $WebDAV::LOCK_FN 	Holds lock descriptions
+
+WebDAV.pm provides all the services for running a Web DAV server
+
+add_webDAV_user creates an account for a user.
+
+      Takes as arguments a user name, password, root collection and
+      quota (storage area size) for a new user.  If any of these do
+      not exist it prompts on stdin/stdout for them
+
+      It checks that the user does not exist and that the root
+      collection does not exist as a resource.  (It is OK for two users
+      to share a route collection)
+
+      The file that stores passwords is in WebDAV ($PASSWORD_FN
+      accessesed by WebDAV::get_PASSWORD_FN())
+
+      The route collection is created with...
+
+            WebDAV::_createCollection( WebDAV::get_ROOT()."/$root")
+
+       $root is passed in root collection
+
+       WebDAV::_addUsers does the heavy lifting from then...
+
+       The file $USERS_FN stores user names, and root collections.

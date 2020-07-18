@@ -1,0 +1,26 @@
+#!/usr/bin/perl -w
+use strict;
+
+# Initialise the WebDAV so it has nothing in it
+
+foreach my $f (qw|._DAV_LOCKS 
+                  ._PropertiesDead
+                  ._PropertiesLive 
+                  ._translate_resource|){
+    unlink($f);
+    -e $f and die "Cannot delete '$f'";
+    `touch $f`;
+    $? and die $?;
+    `chgrp  www-data $f`;
+    $? and die $?;
+}
+if(-d 'DATA'){
+    `rm -fr DATA/*`;
+    $? and die $?;
+}else{
+    if(-e 'DATA'){
+        unlink('DATA');
+    }
+    `mkdir DATA`;
+    $? and die $?;
+}        

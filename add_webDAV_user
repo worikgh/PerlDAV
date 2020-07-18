@@ -1,0 +1,98 @@
+#!/usr/bin/perl -w
+use strict;
+use warnings;
+<<<<<<< HEAD
+=======
+use Expect;
+>>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
+use lib '.';
+use WebDAV;
+use File::Temp qw/ tempfile /;
+
+# Add a user to the system
+
+# The "realm" for the password is included in
+# /etc/apache2/sites-available/WorikHTTP.conf
+
+# <Directory /home/worik/Worik.org/DAV>
+# 	AuthType Digest
+# 	AuthName "WebDAV"
+# 	AuthDigestDomain http://worik.org/DAV/
+# 	AuthUserFile /home/worik/DavPasswd
+# 	Require valid-user
+# </Directory>
+
+# The entry is "AuthName"
+
+my ($name, $password, $root) = @ARGV;
+WebDAV::initialiseServer();
+my $realm = 'WebDAV';
+$|++;
+if(!defined($name) and !defined($password) and !defined($root)){
+    print "Enter user name: ";
+    $name = <STDIN>;
+    chomp($name);
+    print "Enter password:";
+    $password = <STDIN>;
+    chomp($password);
+    print "Enter Root:";
+    $root = <STDIN>;
+    chomp($root);
+}
+# Check we have no record for the user
+my @users = WebDAV::_getUsers($name);
+
+# Check $root does not exist
+my $validRoot = 1;
+if(WebDAV::_resourceExists($root) and !WebDAV::_isCollection($root)){
+    $validRoot = 0;
+}
+
+my $exit = 0;
+if(@users){
+    print "User '$name' has ".(@users > 1?"records":"a record")." in the system\n";
+    print join("\n", @users)."\n";
+    $exit = 1;
+}
+
+if(!$validRoot){
+    print "Root '$root' for '$name' exists and is not a collection\n";
+    $exit = 1;
+}
+
+$exit and exit $exit;
+# Adding the user. 
+
+# Set password
+
+# Create a temporary file for md5sum to process
+my ($fh, $fname) = tempfile(UNLINK => 0);
+print $fh "$name:WebDAV:$password";
+close $fh or die "$!: Cannot close temporary file: '$fname'";
+my $h_line = "$name:$realm:".`md5sum $fname|cut -b -32`."\n";
+unlink $fname or die "$!: Cannot unlink '$fname'";
+
+# Get password file name
+my $pw_fn = WebDAV::get_PASSWORD_FN();
+open my $OUT, ">>$pw_fn" or die "$!: Could not open password file '$pw_fn' for append";
+print $OUT $h_line;
+close $OUT or die "$!: Cannot close password file '$pw_fn' for append";
+
+# Create the root directory if it does not exist.  Users can share
+# roots.
+if(!WebDAV::_isCollection($root)){
+    # Does not exist as a collection.  Implies does not exist at
+    # all
+    my $path = WebDAV::_createCollection( WebDAV::get_ROOT()."/$root");
+    # Change group to www-data
+    my ($login,$pass,$uid,$gid) = getpwnam('www-data')
+	or die "Not in passwd file";
+    chown(-1, $gid, $path) or die "$! '$path'";
+
+    print("Path for root '$root' is '$path'\n");
+    -d $path or die "'$path' is not a directory!";
+}
+
+# Write line into the users file
+WebDAV::_addUsers(["$name\t$root"]);
+
