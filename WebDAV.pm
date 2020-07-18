@@ -14,6 +14,7 @@ use utf8;
 use ResourceStore;
 use WDGlobals qw|
     $ROOT 
+    $DAVPASSWD
     $PWD
     %LIVE_PROPERTIES
     $LOGLEVEL
