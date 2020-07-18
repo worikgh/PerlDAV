@@ -242,7 +242,7 @@ sub initialiseServer( ){
     if($@){
         die $@;
     }
-    warn "Here";
+
     -d $DATADIR or die "\$DATADIR '$DATADIR' is not a directory";
 
 
@@ -316,7 +316,6 @@ sub initialiseServer( ){
     if($@){
         _LOG($@);
     }
-
 }
 
 #==================================
@@ -867,7 +866,6 @@ sub _getMaxStorage( $ ){
     return $MAXSTORAGE;
 }
 
-<<<<<<< HEAD
 # # <D:quota-available-bytes>596650</D:quota-available-bytes>
 # # <D:quota-used-bytes>403350</D:quota-used-bytes>
 # sub _getAvailableBytes( $ ){
@@ -886,25 +884,6 @@ sub _getMaxStorage( $ ){
 #     $ret->appendTextNode(_getAvailableBytes($resource));
 #     return $ret;
 # }
-=======
-# <D:quota-available-bytes>596650</D:quota-available-bytes>
-# <D:quota-used-bytes>403350</D:quota-used-bytes>
-sub _getAvailableBytes( $ ){
-    _LOG("FIXME:  Quota manegement unimplemented");
-    return 100000;
-}
-sub _getUsedBytes( $ ){
-    _LOG("FIXME:  Quota manegement unimplemented");
-    return MAXSTORAGE/2;
-}
-sub getQuotaAvailableBytes( $ ){
-    my $resource = shift or die;
-    my $ret = XML::LibXML::Element->new("quota-available-bytes");
-    $ret->setNamespace($DAV_ns, $DAV_pfx, 1);
-    $ret->appendTextNode(_getAvailableBytes($resource));
-    return $ret;
-}
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 
 # sub getQuotaUsedBytes( $ ){
 #     $LOGLEVEL > 1 and _LOG("");
@@ -939,7 +918,6 @@ sub _addProperty( $$$$ ){
     my $value = shift;
     defined($value) or die; # May be 0 or ""
     my $which = shift or confess; #LIVE or DEAD
-<<<<<<< HEAD
     return ResourceStore::add_property($resource, $name, $value, $which);
     # if($which eq "DEAD"){
     #     if(ref($name) =~ /^XML:LibXML:/){
@@ -960,349 +938,6 @@ sub _addProperty( $$$$ ){
     # close($fh)  or die "$!: '$LIVE_PROPERTIESDBFN'";
     # return $ret;
 }
-=======
-
-    if($which eq "DEAD"){
-        if(ref($name) =~ /^XML:LibXML:/){
-            # An XML object
-            $name = $name->toString();
-            LOGLEVEL > 1 and _LOG("FIXME _addProperty called with a name that is a ".
-                                  "XML::LibXML object:'$name' \$value '$value'");
-        }elsif(ref($name) ne ""){
-            # A string is OK.  Anything else a type error
-            die "500 Server Error:_addProperty Property name invalid. ".
-                "ref(\$name) is '".ref($name)."' which is not understood";
-        }
-    }
-    ref($name) eq "" or die "500 Server Error:\$name '$name' ref(\$name) '".
-        ref($name)."'";
-    my $fh = _lockProperties($which);
-    my $ret = _addPropertyf($resource, $name, $value, $fh);
-    close($fh)  or die "$!: '$LIVE_PROPERTIESDBFN'";
-    return $ret;
-}
-
-sub _addPropertyf( $$$$ ){
-
-    # FIXME _addProperty and _deleteProperty share a lot of code.
-
-    # For the resource (parameter 1), property name (parameter 2) and
-    # property value (parameter 3) store the properties.
-
-    # If the property existed return its old value, else undef.  On failure die
-    my $resource = shift;
-    defined($resource) or die; # "" is root collection 
-
-    # All resources have the trailing slash removed.  This is a
-    # problem for the root collection that is then an empty string,
-    # and we cannot put it in the file.
-    # 20161111 Changed root resource to "ROOT"
-    # $resource eq "" and $resource = "/";
-    
-
-    my $name = shift or confess;
-    my $value = shift;
-    defined($value) or die; # May be 0 or ""
-    my $fh = shift or confess;
-    binmode($fh, ":utf8");
-
-    # If $value is multi line then make insert a space at the start of
-    # every line after the first one
-    # FIXME Delete blank lines???  Can property values include blank
-    # lines?
-    $value =~ s/\n/\n /g;
-    
-    # 20150722 11:00 This is inefficient but simplifies my task as I
-    # do not have to check if the property is there before I add it
-    my $ret; # = _deletePropertyf($resource, $name, $fh);
-
-    my $state = 0; # Control reading file and check this after the
-    # eval loop for success at finding the resource
-    eval{
-        seek($fh, 0, 0) or die "$!: Cannok seek on properties";
-        my $newf = '';
-        foreach my $line (<$fh>){
-
-            $line =~ /^\s*#/ and next; # Comments
-            chomp $line;
-            if($state == 0){
-                # When we are looking for the start of the block for this
-                # resource
-                if($line eq $resource){
-                    # Found the block with this resource
-                    $state = 1; 
-                }elsif($line =~ /\S/){
-                    # In wrong block
-                    $state = -1;
-                }
-            }elsif($state == -1){
-                # in the wrong resource block
-                if($line =~ /^\s*$/){
-                    # Finished this resource block.  Reset state to start
-                    # looking for the correct resource block again
-                    $state = 0;
-                }
-            }elsif($state == 1){
-                # in the correct resource block.  If the line is the
-                # line describing this resource replace it .  If it is
-                # a blank line then this is a new property so add it
-                if($line =~ /^$name\t(.*)$/){
-                    $line = "$name\t$value";
-                    $ret = $1;
-                    # State 2 is used to clean out the remains of a
-                    # multy line value
-                    $state = 2;
-                }elsif($line !~ /\S/){
-                    $newf .= "$name\t$value\n";
-                    $state = 3;
-                    # This state is never detected so the loop runs
-                    # out to the end appending all the properties
-                }
-            }elsif($state == 2){
-                # clean out the remains of a multy line value
-                if($line =~ /^(\s.+)/){
-                    # Maintian the old property value to return
-                    $ret .= "\n$1";
-                }else{
-                    $state = 3; # Multi line value is finished
-                }
-            }
-            $newf .= $line."\n";
-        }
-        # If state is 1 then the property URI was the last line in the file
-        $state == 1 and $newf .= "\n$name\t$value\n";
-
-        # Write the new contents
-        truncate($fh, 0) or die "$!: Cannot truncate properties";
-        seek($fh, 0, 0, ) or die "$!: Cannot seek in properties database";
-        print($fh $newf) or die "$!: Cannot write out new properties";
-        #$ret = 1;
-    };
-    if($@){
-        _LOG($@);
-    }
-    # If state == 0 or -1 the resource was not found
-    if($state == 0 or $state == -1){
-        die "400 Bad Request: Resource '$resource' not found in properties databas.  State: '$state'";
-    }
-    return $ret;
-} 
-
-sub _readProperty( $$$ ){
-    my $resource = shift;
-    defined($resource) or die; # "" is root collection 
-    
-    my $propertyName = shift or confess;
-    my $which = shift or confess; #LIVE or DEAD
-    my $fh = _lockProperties($which);
-    my $ret = _readPropertyf($resource, $propertyName, $fh);
-    close($fh)  or die "$!: '$LIVE_PROPERTIESDBFN'";
-    return $ret;
-}
-sub _readPropertyf( $$$ ){
-    # Passed a resource and a property name return the property or
-    # undef if the property does not exist.  
-    my $resource = shift;
-    defined($resource) or die; # "" is root collection 
-
-    # All resources have the trailing slash removed.  This is a
-    # problem for the root collection that is then an empty string,
-    # and we cannot put it in the file.
-    # 20161111 Changed root resource to "ROOT"
-    # $resource eq "" and $resource = "/";
-    
-
-    my $propertyName = shift or confess;
-    my $fh = shift or confess; 
-    binmode($fh, ":utf8");
-    my $ret = undef;
-
-    # Need this parser to parse property names from the property file
-    my $parser = XML::LibXML->new(); 
-
-    my $state = 0; # Control reading file and check this after the
-    # eval loop for success at finding the resource
-    eval{
-        seek($fh, 0, 0) or die "$!: Cannok seek on properties";
-        my $value; # Place to store (possibly multi-line)  value
-        foreach my $line (<$fh>){
-            chomp($line);
-            $line =~ /^\s*#/ and next; # Comments
-            
-            if($state == 0){
-                # When we are looking for the start of the block for this
-                # resource
-                if($line eq $resource){
-                    # Found the block with this resource
-                    $state = 1; 
-                }elsif($line =~ /\S/){
-                    # This block is a different resource
-                    $state = -1; 
-                }
-            }elsif($state == -1){
-                # in the wrong resource block
-                if($line =~ /^\s*$/){
-                    # Finished this resource block.  Reset state to start
-                    # looking for the correct resource block again
-                    $state = 0;
-                }
-            }elsif($state == 1){
-                # in the correct resource block.
-                if($line =~ /^(\S[^\t]*)\s*\t\s*(.*)/){
-                    # This line is a property line
-                    #my $_xml = $parser->parse_string($1)->documentElement();
-                    #if(_cmpXML($_xml, $propertyName) == 0){
-		    
-                    if($1 eq $propertyName){
-                        # Found the value to select.
-                        $value = $2; # Start storing value
-                        $state = 3;
-                        #last; # finished
-                    }
-                }elsif($line =~ /^\s*$/){
-                    # Blank line.  End of correct resource block.
-                    # Have not found value
-                    $ret = undef;
-                }
-            }elsif($state == 3){
-                # Building a multi-line value
-                if($line =~ /^\S/ or $line =~ /^\s*$/){
-                    # Finished
-                    $ret = $value;
-                    # only one value allowed for a property, so do not
-                    # read any more
-                    last;
-                }else{
-                    $value .= $line;
-                }
-            }else{
-                die "Invalid state: \$state";
-            }
-        }
-    };
-    if($@){
-        _LOG($@);
-        $ret = undef;
-    }
-
-    # # If state == 0 or -1 the resource was not found
-    # if($state == 0 or $state == -1){
-    # 	die "400 Bad Request: Resource '$resource' not found in properties database";
-    # }
-    return $ret;
-}
-
-sub _deleteProperty( $$$ ){
-    my $resource = shift;
-    defined($resource) or die; # "" is root collection 
-    my $propertyName = shift or confess;
-    my $which = shift or confess; #LIVE or DEAD
-    my $fh = _lockProperties($which);
-    my $ret = _deletePropertyf($resource, $propertyName, $fh);
-    _checkForOrphanProperties();
-    close($fh)  or die "$!: '$LIVE_PROPERTIESDBFN'";
-    return $ret;
-}
-sub _deletePropertyf( $$$ ){
-    # Passed a resource and a property name delete the property and
-    # its value from the database and return the property's old value
-    # or undef if the property does not exist. 
-    my $resource = shift;
-    defined($resource) or die; # "" is root collection 
-
-    # All resources have the trailing slash removed.  This is a
-    # problem for the root collection that is then an empty string,
-    # and we cannot put it in the file.
-    # 20161111 Changed root resource to "ROOT"
-    # $resource eq "" and $resource = "/";
-    
-
-    my $propertyName = shift or confess;
-    my $fh = shift or confess;
-    binmode($fh, ":utf8");
-
-    my $ret = undef;
-    
-    my $state = 0; # Control reading file and check this after the
-    # eval loop for success at finding the resource
-    eval{
-        seek($fh, 0, 0) or die "$!: Cannok seek on properties";
-        my $newf = '';
-        foreach my $line (<$fh>){
-            $line =~ /^\s*#/ and next; # Comments
-            chomp $line;
-            
-            if($state == 0){
-                # When we are looking for the start of the block for this
-                # resource
-                if($line eq $resource){
-                    # Found the block with this resource
-                    $state = 1; 
-                }elsif($line =~ /\S/){
-                    # This block is a different resource
-                    $state = -1; 
-                }
-            }elsif($state == -1){
-                # in the wrong resource block
-                if($line =~ /^\s*$/){
-                    # Finished this resource block.  Reset state to start
-                    # looking for the correct resource block again
-                    $state = 0;
-                }
-            }elsif($state == 1){
-                # in the correct resource block.
-                if($line =~ /^\s*(\S[^\t]*)\s*\t\s*(.+)/){
-                    # This line is a property line
-                    if($1 eq $propertyName){
-                        # Found the value to selete.
-                        $ret = $2; # Store old value to return
-                        # May be a multi-line value so set state to 3
-                        $state = 3;
-                        next; # Do not put line in new version of file
-                    }
-                }elsif($line =~ /^\s*$/){
-                    # Blank line.  End of correct resource block
-                    
-                    # Set the state to 2 that is not detected so the rest
-                    # of the properties will be added unchanged
-                    $state = 2;
-                }
-            }elsif($state == 3){
-                # Collecting a multi-line value
-                if($line =~ /^\S/ or $line =~ /^\s*$/){
-                    # Finished
-                    $state = $line =~ /^\s*$/?0:1;
-                }else{
-                    $ret .= $line;
-                    next; # Do not put back in file
-                }
-                if($line =~ /^\s*$/){
-                    # Finished block.  Set state to 2 that is never
-                    # tested for so the rest of the file is copied
-                    $state = 2;
-                }
-            }
-            $newf .= $line."\n";
-        }
-
-        # Write the new contents
-        truncate($fh, 0) or die "$!: Cannot truncate properties";
-        seek($fh, 0, 0, ) or die "$!: Cannot seek in properties database";
-        print($fh $newf) or die "$!: Cannot write out new properties";
-    };
-    if($@){
-        _LOG($@);
-        $ret = undef;
-    }
-
-    # If state == 0 or -1 the resource was not found
-    if($state != 2){
-        die "400 Bad Request: Resource '$resource' not found in properties database";
-    }
-    return $ret;
-}		    
-
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 
 sub _readProperty( $$$ ){
     my $resource = shift;
@@ -2486,20 +2121,12 @@ sub _createCollection( $ ){
     return ResourceStore::create_collection($collection);
     # my $path = _createPath($collection,'collection');
 
-<<<<<<< HEAD
     # if(defined($path)){
     #     my $_r = mkdir($path) or confess "500 Internal Server Error: '$!' mkdir('$path')";
         
     # }
     # $collection eq $ROOT and _LOG("_initialiseResourceProperty( '$ROOT' )");
     # _initialiseResourceProperty($collection);
-=======
-    if(defined($path)){
-        my $_r = mkdir($path) or confess "500 Internal Server Error: '$!' mkdir('$path')";
-    }
-    $collection eq $ROOT and _LOG("_initialiseResourceProperty( '$ROOT' )");
-    _initialiseResourceProperty($collection);
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 
     # # FIXME Should this be called here?
     # _setLiveProperties($collection);
@@ -3069,7 +2696,6 @@ sub _preambleCopyMove( $ ){
     defined($overwrite) or $overwrite = "T";
     $overwrite = uc($overwrite); # Case insensitive value Dusseault pg 135
 
-<<<<<<< HEAD
     $LOGLEVEL > 2 and 
         _LOG("CMD ".$ENV{REQUEST_METHOD}.
              " '".(defined($source)?$source:"").
@@ -3077,15 +2703,6 @@ sub _preambleCopyMove( $ ){
              "Overwrite: ".
              (defined(_getHeader("Overwrite"))?_getHeader("Overwrite"):"").
              " Depth: ".(defined(_getDepth())?_getDepth():""));
-=======
-    # LOGLEVEL > 0 and 
-    #     _LOG("CMD ".$ENV{REQUEST_METHOD}.
-    #          " '".(defined($source)?$source:"").
-    #          " -> ".(defined($destination)?$destination:"")."' ".
-    #          "Overwrite: ".
-    #          (defined(_getHeader("Overwrite"))?_getHeader("Overwrite"):"").
-    #          " Depth: ".(defined(_getDepth())?_getDepth():""));
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 
     # my $dstFN = _resourceToPath($destination);
     # defined($dstFN) and -e $dstFN and $overwrite eq "F" and  
@@ -3477,7 +3094,6 @@ sub _handle_prop( $$$$ ){
             defined($ns) or $ns = "";
             my $pfx = $p->prefix();
             defined($pfx) or $pfx = "";
-<<<<<<< HEAD
             $name = XML::LibXML::Element->new($name);
             $name->setNamespace($ns, $pfx, 0);
             $value = _readProperty($resource, $name->toString(), "DEAD");
@@ -3487,15 +3103,6 @@ sub _handle_prop( $$$$ ){
         if(defined($value)){
 
 	    # What deos this do?
-=======
-            my $namex = XML::LibXML::Element->new($name);
-            $namex->setNamespace($ns, $pfx, 0);
-            $value = _readProperty($resource, $namex->toString(), "DEAD");
-        }
-
-        if(defined($value)){
-
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
             _checkProps( 200, $propstatREF, $propREF);
 
             if(ref($value) eq ''){
@@ -3509,7 +3116,6 @@ sub _handle_prop( $$$$ ){
                 if($@){
                     # Not valid XML.  Just add it as text
                     # FIXME: Is this ever executed?
-		    LOGLEVEL>0 and _LOG("Property returned not valid XML");
                     my $_pNS = defined($p->namespaceURI())?
                         $p->namespaceURI():"";
                     my $_p = $propREF->{200}->addNewChild( 
@@ -3520,7 +3126,6 @@ sub _handle_prop( $$$$ ){
             }elsif(ref($value) eq 'XML::LibXML::Element'){
                 # FIXME: Is this code ever reached?  Can I
                 # write a test to reach it?
-		LOGLEVEL>0 and _LOG("Property returned valid XML");
                 $propREF->{200}->addChild($value);
             }else{
                 die "500 Server Error:Property value is type: '".
@@ -3608,11 +3213,7 @@ sub _propfindResource( $$$$ ){
     defined($resource) or confess; # "" is root collection 
     my $name = shift or confess; 
     my $xml = shift or confess;
-<<<<<<< HEAD
     # $LOGLEVEL>2 and _LOG("_propfindResource: \$resource $resource \$name $name");
-=======
-
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
     if(!_authoriseResource($principal, $resource, "PROPFIND")){
         # Not authorised
         # This is unspecified behaviour.  Another bug in the specification
@@ -3746,11 +3347,7 @@ sub handle_UNLOCK( $ ){
     eval{
         my $resource = _getResource($principal);
         my $token = _getHeader('Lock-Token');
-<<<<<<< HEAD
         $LOGLEVEL > 2 and _LOG("CMD UNLOCK $resource '$token' ");
-=======
-
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
         defined($token) or  die "400 Bad Request";
         $token =~ s/^<// or die "Token not understood";
         $token =~ s/>$// or die "Token not understood";
@@ -3800,12 +3397,9 @@ sub handle_LOCK( $ ){
         my $depth = _getDepth();
         (defined($depth) and $depth) or $depth = 'infinity';
 
-<<<<<<< HEAD
         $LOGLEVEL > 2 and _LOG("CMD LOCK $resource ");
 
 
-=======
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
         # 9.10.1.  Creating a Lock on an Existing Resource
 
         # A LOCK request to an existing resource will create a lock on the
@@ -3981,10 +3575,6 @@ sub handle_LOCK( $ ){
                 die "412 Precondition Failed:".
                     "lock-token-matches-request-uri Resource: '$resource'";
             }
-<<<<<<< HEAD
-=======
-
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
             $refresh = 1;
         }
 
@@ -4812,10 +4402,7 @@ sub handle_PROPFIND( $ ){
     # Returns a <multistatus> element
 
     my $principal = shift or confess; 
-<<<<<<< HEAD
     #_LOG("PROPFIND \$principal '$principal'");
-=======
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 
     # The return value
     my $xml = XML::LibXML->createDocument( "1.0", "utf-8" );
@@ -4823,8 +4410,8 @@ sub handle_PROPFIND( $ ){
     $root->setNamespace($DAV_ns, $DAV_pfx, 1);
     $xml->setDocumentElement( $root );
 
-    # Fill this with all the resource URLs we will use.  Declared
-    # outside the eval block to facilitate debugging at end of function
+    # Fill this with all the uesource URLs we will use.  Declared
+    # outside the eval block to facilitate debugging a end of function
     my @resources = ();
     eval {
 
@@ -4843,10 +4430,7 @@ sub handle_PROPFIND( $ ){
         # properties for
         my $depth = _getDepth();
         (defined($depth) and $depth =~ /\S/) or $depth = "infinity";
-<<<<<<< HEAD
         #defined($depth) or $depth = "infinity";
-=======
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 
         # Using depth calculate which resources we are getting
         # properties for.  DEPTH != 0 for a non-collection resource is
@@ -4892,10 +4476,7 @@ sub handle_PROPFIND( $ ){
         # For <propname> and <prop> there is just one child of
         # <propfind>.  For <allprop> there can be an <include> element
 
-<<<<<<< HEAD
 
-=======
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
         if(@children == 1){
             # Can be any of the three....
             my $child = $children[0];
@@ -5258,13 +4839,9 @@ sub _authenticate( ){
     # Using HTTP Digest authentication from Apache.  It handles all
     # the password bollocks and puts user name in here....
     my $ret = $ENV{REMOTE_USER};
-<<<<<<< HEAD
     # foreach my $k (sort keys(%ENV)){
     #     _LOG("ENV{$k}\t".$ENV{$k});
     # }
-=======
-    LOGLEVEL>1&&_LOG("_authenticate Principal: '".(defined($ret)?$ret:'<undef>')."' ");
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
     return $ret;
 }
 
@@ -5408,10 +4985,7 @@ sub _stdNoContentResponse( $;$ ){
     my $code = shift or confess; # 0 is an invalid code
     my $message = @_?shift:"";
     my $out = _stdResponse($code, $message);
-<<<<<<< HEAD
     $LOGLEVEL > 2&&_LOG("\$code $code \$message $message \$out $out");
-=======
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
     return $out;
 }
 
@@ -5495,17 +5069,12 @@ sub _readXMLInput(){
 _isCollection($ROOT) or confess "Root collection does not exist";
 
 sub runServer( ){
-
     my $c = 0;
     #$LOGLEVEL > 2 and _LOG("Setup.  Ready to go....");
     my $method; # Set in loop
     my $request = FCGI::Request();
     while(1) {
-<<<<<<< HEAD
         #$LOGLEVEL > 2&&_LOG("Wait for connection...");
-=======
-        LOGLEVEL>1&&_LOG("Wait for a connection...");
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
         my $_acc = $request->Accept();
 	#$LOGLEVEL > 2&&_LOG("\$_acc $_acc");	
         $_acc >= 0 or last;
@@ -5546,7 +5115,7 @@ sub runServer( ){
             defined($X_Litmus) and $LOGLEVEL > 2 and _LOG("X_Litmus: '$X_Litmus'");
 
             # apache only?
-            defined($ENV{'REQUEST_SCHEME'}) and $PROTOCOL = $ENV{'REQUEST_SCHEME'};
+            $PROTOCOL = $ENV{'REQUEST_SCHEME'};
 
             # The METHOD determins how we act
             $method = $ENV{REQUEST_METHOD};

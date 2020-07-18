@@ -137,4 +137,3 @@ It checks that the user does not exist and that the root
 collection does not exist as a resource.  (It is OK for two users
 to share a route collection)
 
-# PelrDAV

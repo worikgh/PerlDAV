@@ -6,11 +6,7 @@ my $DIR = "/home/dav/PerlDAV/";
 -d $DIR or die "$!: '$DIR' not a directory";
 
 my @fileNames = qw|._DAV_LOCKS ._tr ._PropertiesDead ._PropertiesLive ._Users|;
-<<<<<<< HEAD
 chdir $DIR or die $!;
-=======
-chdir "/home/dav/PerlDAV/" or die $!;
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 
 foreach my $fn (@fileNames){
     if(-e $fn){
@@ -28,12 +24,8 @@ if(-d "DATA"){
 }
 
 # Put the users back
-<<<<<<< HEAD
 # if there are any
 if (open(my $users_f, "/home/worik/WebDAVusers.txt") ){
-=======
-open(my $users_f, "/home/dav/PerlDAV/WebDAVusers.txt") or die "$!";
->>>>>>> a991592a62b2c06b7a58f9e1ca88f9094226f12f
 my @users = map{chomp; $_} <$users_f>;
 close($users_f) or die $!;
 
