@@ -37,12 +37,7 @@ lxc exec webdav -- useradd -m dav
 lxc exec webdav -- usermod -a -G www-data dav
 
 # Contents of PerlDAV.tgz
-# WebDAV.pm
-# webdav
-# add_webDAV_user
-# ResourceStore.pm
-# WDGlobals.pm
-# initialiseDAV
+tar cfz PerlDAV.tgz WebDAV.pm webdav add_webDAV_user ResourceStore.pm WDGlobals.pm initialiseDAV
 
 lxc file push PerlDAV.tgz webdav/home/dav/
 lxc exec webdav -- su - dav -c "mkdir $PD_HOME/"
