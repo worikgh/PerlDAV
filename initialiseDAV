@@ -6,6 +6,7 @@ use strict;
 foreach my $f (qw|._DAV_LOCKS 
                   ._PropertiesDead
                   ._PropertiesLive 
+	          ._authorise
                   ._translate_resource|){
     unlink($f);
     -e $f and die "Cannot delete '$f'";
