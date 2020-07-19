@@ -4,21 +4,28 @@ use strict;
 # Initialise the WebDAV so it has nothing in it
 use lib '.';
 use WDGlobals qw/$DAVPASSWD/;
-foreach my $f (qw|$DAVPASSWD
-	       ._DAV_LOCKS 
+
+# Get the gid of www-data and user 'dav'.  FIXME These should be configurable
+my  ($gname,$gpasswd, $gid, $gmembers) = getgrnam("www-data");
+
+my ($uname,$upasswd, $uid, $umembers) = getpwnam("dav");
+defined($uid) or die "No user id";
+defined($gid) or die "No group id";
+my @fn = qw|._DAV_LOCKS 
 	       ._PropertiesDead
 	       ._PropertiesLive 
 	       ._tr
 	       ._Users
 	       ._authorise
 	       webdav.log
-	       ._translate_resource|){
+	       ._translate_resource|;
+push(@fn, $DAVPASSWD);
+foreach my $f (@fn){
     unlink($f);
     -e $f and die "Cannot delete '$f'";
     `touch $f`;
     $? and die $?;
-    `chgrp  www-data $f`;
-    $? and die $?;
+    chown($uid, $gid, $f) or die "$!: Could not chown '$f'";
 }
 if(-d 'DATA'){
     `rm -fr DATA/*`;
