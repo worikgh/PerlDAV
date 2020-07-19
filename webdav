@@ -1,13 +1,9 @@
 #!/usr/bin/perl -w
 use strict;
 use warnings;
-use WDGlobals qw|PWD|;
-
-# FIXME: This hard coded thing makes this unportable
+use lib "/home/dav/PerlDAV";  # FIXME USe a environment variable in lighttpd
+use WDGlobals qw|$PWD|;
 chdir $PWD or die "$! 'chdir $PWD' failed ";
-
-use lib($PWD);
-
 use WebDAV;
 WebDAV::initialiseServer();
 WebDAV::runServer();

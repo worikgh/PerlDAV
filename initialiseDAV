@@ -6,6 +6,8 @@ use strict;
 foreach my $f (qw|._DAV_LOCKS 
                   ._PropertiesDead
                   ._PropertiesLive 
+	          ._tr
+                  ._Users
 	          ._authorise
                   ._translate_resource|){
     unlink($f);

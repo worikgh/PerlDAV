@@ -3,7 +3,7 @@ set -x
 
 # Set the location, in the container, of the WebDAV installation
 PD_HOME=/home/dav/PerlDAV
-
+DAVPASSWD='DavPasswd' # FIXME Get this from WDGlobals
 # Build the container
 lxc launch ubuntu:18.04 webdav
 

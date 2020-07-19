@@ -34,7 +34,7 @@ our $RESOURCE_PATH_FN = "._tr";
 # Where data is stored (Duh!)
 our $DATADIR = 'DATA';
 # The name of the password file
-our $DAVPASSWD = 'DavPAsswd';
+our $DAVPASSWD = 'DavPasswd';
 
 # The live properties.  Each key is the property name.  Each value is
 # an ARRAY ref.  
