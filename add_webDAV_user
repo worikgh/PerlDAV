@@ -4,7 +4,7 @@ use warnings;
 use lib '.';
 use WebDAV;
 use File::Temp qw/ tempfile /;
-use WDGlobals qw/DAVPASSWD/;
+use WDGlobals qw/$DAVPASSWD/;
 # Add a user to the system
 
 # The "realm" for the password is included in
