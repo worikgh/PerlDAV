@@ -521,14 +521,27 @@ sub remove_resource_property( $$ ) {
 
 sub remove_resource( $ ) {
     # Remove the passed resource from the database but not the file system
+    # Return 1 if successful.  0 if not
     my $resource = shift;
     defined($resource) or die; # "" is root collection 
     my $fh = _lockResourcePathTable();
     my ($tableref, $typesref, $last) = _readResourcePathTable_fh($fh);
-    delete($tableref->{$resource});
-    delete($typesref->{$resource});
+    my $ret = 1;
+    if(defined($tableref->{$resource})){
+	delete($tableref->{$resource});
+    }else{
+	_LOG("\$resource '$resource' is undefined in `tableref`");
+	$ret = 0;
+    }
+    if(defined($typesref->{$resource})){
+	delete($typesref->{$resource});
+    }else{
+	_LOG("\$resource '$resource' is undefined in `typesref`");
+	$ret = 0;
+    }
     _storeResourcePathTable_fh($tableref, $typesref, $fh);
     close($fh) or die "$! '$RESOURCE_PATH_FN'";
+    return $ret;
 }
 
 sub add_resource( $$ ) {
@@ -814,19 +827,19 @@ sub delete_resource( $ ) {
     # resource hierarchy and file system
     $LOGLEVEL > 2&&_LOG("delete_resource($resource)");
     my $path = resource_to_path($resource);
+    my $isdol = is_collection($resource)?"Yes":"No";
     $LOGLEVEL > 2&&_LOG("\$resource $resource \$path $path ".
-			"is_collection: ". is_collection($resource));
+			"is_collection: $iscol");
     if(defined($path) and -d $path){ 
 	$LOGLEVEL > 2&&_LOG("delete_resource($resource)");
 	if(rmdir($path)){
-	    $LOGLEVEL > 2&&_LOG("Not error here");
 	    remove_resource_property($resource, "LIVE");
 	    remove_resource_property($resource, "DEAD");
-	    remove_resource($resource);
+	    remove_resource($resource) or die "Failed to remove resource '$resource'";
 	    @ret = ([204, $resource, "", ""]);
 	}else{
 	    $LOGLEVEL > 2&&_LOG("Error here");
-	    my @_ret = ([500,$resource, $!]);
+	    @ret = ([500,$resource, $!]);
 	}
     }elsif(is_collection($resource)){
 	$LOGLEVEL > 2&&_LOG("delete_resource($resource)");
@@ -842,6 +855,7 @@ sub delete_resource( $ ) {
 	    remove_resource_property($resource, "LIVE");
 	    remove_resource_property($resource, "DEAD");
 	    remove_resource($resource);
+	    @ret = ([204, "No Content"]);
 	}else{
 	    $LOGLEVEL > 2&&_LOG("delete_resource($resource) Error: $!");
 	    @ret = ([400, $resource, "Could not delete resource file: '$!'"]);
