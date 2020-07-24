@@ -3,12 +3,11 @@ set -x
 
 # Set the location, in the container, of the WebDAV installation
 PD_HOME=/home/dav/PerlDAV
-DAVPASSWD='DavPasswd' # FIXME Get this from WDGlobals
+
 # Build the container
 lxc launch ubuntu:18.04 webdav
 
-
-# Prepare a script that will wait for user `ubuntu` to be added
+# Wait for user `ubuntu` to be added
 FN=/tmp/$$
 echo Create $FN
 cat <<EOF >$FN
@@ -27,8 +26,6 @@ EOF
 lxc file push  $FN webdav/tmp/testubuntu
 rm $FN
 lxc exec webdav -- chmod a+x /tmp/testubuntu
-
-
 lxc exec webdav -- /tmp/testubuntu
 lxc exec webdav -- rm /tmp/testubuntu
 
@@ -36,13 +33,17 @@ lxc exec webdav -- rm /tmp/testubuntu
 lxc exec webdav -- useradd -m dav
 lxc exec webdav -- usermod -a -G www-data dav
 
-# Contents of PerlDAV.tgz
-tar cfz PerlDAV.tgz WebDAV.pm webdav add_webDAV_user ResourceStore.pm WDGlobals.pm initialiseDAV
-
+# Crete the server environment.  Create the directory structure and
+# send the code files
+tar cfz PerlDAV.tgz WebDAV.pm  webdav  add_webDAV_user  ResourceStore.pm  WDGlobals.pm
 lxc file push PerlDAV.tgz webdav/home/dav/
+rm PerlDAV.tgz
+
 lxc exec webdav -- su - dav -c "mkdir $PD_HOME/"
 lxc exec webdav -- su - dav -c "cd $PD_HOME ; tar xfzv /home/dav/PerlDAV.tgz "
-lxc exec webdav -- su - dav -c "cd $PD_HOME ; ./initialiseDAV"
+lxc exec webdav -- su - dav -c "cd $PD_HOME ; touch DavPasswd webdav.log ._DAV_LOCKS ._PropertiesDead ._PropertiesLive ._Users ._authorise ._tr ._translate_resource"
+lxc exec webdav -- su - dav -c "cd $PD_HOME ; mkdir DATA"
+lxc exec webdav -- su - dav -c "cd $PD_HOME ; chgrp www-data DavPasswd webdav.log ._DAV_LOCKS ._PropertiesDead ._PropertiesLive ._Users ._authorise ._tr ._translate_resource DATA"
 
 # Pause unitl the network is ready.  Prepare and execute a script that
 # will wait for netwok interfaces to come up
@@ -90,7 +91,7 @@ fastcgi.server = (
  )
 
 auth.backend = "htdigest"
-auth.backend.htdigest.userfile ="/home/dav/PerlDAV/$DAVPASSWD"
+auth.backend.htdigest.userfile ="/home/dav/PerlDAV/DavPasswd"
 auth.require = ( "/" =>
     (
         "method"  => "digest",
@@ -112,3 +113,19 @@ lxc exec webdav -- su - dav -c "cd $PD_HOME ; ./add_webDAV_user dav dav PerlDAV"
 # Create the file in the file system that fast CGI references.  I
 # think this is a bug in fast CGI
 lxc exec webdav -- touch /var/www/html/dav
+
+# Get the IP address of the LXC
+Z=`lxc list webdav -c 4|grep eth0|cut -d ' ' -f 2`
+
+# Run tests
+if [ ! -d litmus ]
+then
+    git clone https://github.com/worikgh/litmus.git
+fi
+cd litmus
+ls
+if [ ! -e Makefile ]
+then
+    cd litmus ; ./configure 
+fi
+make URL="http://$Z/dav" CREDS="dav dav" check
