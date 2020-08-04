@@ -827,10 +827,11 @@ sub delete_resource( $ ) {
     # resource hierarchy and file system
     $LOGLEVEL > 2&&_LOG("delete_resource($resource)");
     my $path = resource_to_path($resource);
-    my $isdol = is_collection($resource)?"Yes":"No";
     $LOGLEVEL > 2&&_LOG("\$resource $resource \$path $path ".
-			"is_collection: $iscol");
-    if(defined($path) and -d $path){ 
+			"is_collection: ".is_collection($resource)?"Yes":"No");
+    if(defined($path) and -d $path){
+        # $resource is a collection
+        is_collection($resource) or die "\$resource should be a collection";
 	$LOGLEVEL > 2&&_LOG("delete_resource($resource)");
 	if(rmdir($path)){
 	    remove_resource_property($resource, "LIVE");
