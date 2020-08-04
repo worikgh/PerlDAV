@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -xue
 
 # Set the location, in the container, of the WebDAV installation
 PD_HOME=/home/dav/PerlDAV
@@ -23,11 +23,13 @@ fi
 done
 echo Found ubuntu user.
 EOF
-lxc file push  $FN webdav/tmp/testubuntu
+FX=/testubuntu
+lxc file push  $FN webdav$FX
 rm $FN
-lxc exec webdav -- chmod a+x /tmp/testubuntu
-lxc exec webdav -- /tmp/testubuntu
-lxc exec webdav -- rm /tmp/testubuntu
+
+lxc exec webdav -- chmod a+x $FX
+lxc exec webdav -- sh $FX
+lxc exec webdav -- rm $FX
 
 # Add the user to run PerlDAV as
 lxc exec webdav -- useradd -m dav
@@ -123,7 +125,6 @@ then
     git clone https://github.com/worikgh/litmus.git
 fi
 cd litmus
-ls
 if [ ! -e Makefile ]
 then
     cd litmus ; ./configure 
